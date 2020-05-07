@@ -1,8 +1,8 @@
 {
   "service": {
-    "service": "udagram-feed",
+    "service": "serverless-udagram-feed",
     "serviceObject": {
-      "name": "udagram-feed"
+      "name": "serverless-udagram-feed"
     },
     "provider": {
       "stage": "dev",
@@ -12,10 +12,22 @@
       "apiGateway": {
         "minimumCompressionSize": 1024
       },
+      "region": "us-east-1",
       "environment": {
+        "GROUPS_TABLE": "Groups-dev",
         "AWS_NODEJS_CONNECTION_REUSE_ENABLED": 1
       },
-      "region": "us-east-1",
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:Scan",
+            "dynamodb:PutItem",
+            "dynamodb:GetItem"
+          ],
+          "Resource": "arn:aws:dynamodb:us-east-1:*:table/Groups-dev"
+        }
+      ],
       "versionFunctions": true,
       "remoteFunctionData": null,
       "compiledCloudFormationTemplate": {
@@ -76,10 +88,10 @@
               }
             }
           },
-          "HelloLogGroup": {
+          "GetGroupsLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/udagram-feed-dev-hello"
+              "LogGroupName": "/aws/lambda/serverless-udagram-feed-dev-GetGroups"
             }
           },
           "IamRoleLambdaExecution": {
@@ -107,7 +119,7 @@
                     "Fn::Join": [
                       "-",
                       [
-                        "udagram-feed-dev",
+                        "serverless-udagram-feed-dev",
                         "lambda"
                       ]
                     ]
@@ -123,7 +135,7 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/udagram-feed-dev*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-udagram-feed-dev*:*"
                           }
                         ]
                       },
@@ -134,9 +146,12 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/udagram-feed-dev*:*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-udagram-feed-dev*:*:*"
                           }
                         ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][0]"
                       }
                     ]
                   }
@@ -147,7 +162,7 @@
                 "Fn::Join": [
                   "-",
                   [
-                    "udagram-feed-dev",
+                    "serverless-udagram-feed-dev",
                     {
                       "Ref": "AWS::Region"
                     },
@@ -157,17 +172,17 @@
               }
             }
           },
-          "HelloLambdaFunction": {
+          "GetGroupsLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/udagram-feed/dev/1588885192136-2020-05-07T20:59:52.136Z/udagram-feed.zip"
+                "S3Key": "serverless/serverless-udagram-feed/dev/1588888569533-2020-05-07T21:56:09.533Z/serverless-udagram-feed.zip"
               },
-              "FunctionName": "udagram-feed-dev-hello",
-              "Handler": "handler.hello",
+              "FunctionName": "serverless-udagram-feed-dev-GetGroups",
+              "Handler": "src/lambda/http/getGroups.handler",
               "MemorySize": 1024,
               "Role": {
                 "Fn::GetAtt": [
@@ -179,29 +194,30 @@
               "Timeout": 6,
               "Environment": {
                 "Variables": {
+                  "GROUPS_TABLE": "Groups-dev",
                   "AWS_NODEJS_CONNECTION_REUSE_ENABLED": 1
                 }
               }
             },
             "DependsOn": [
-              "HelloLogGroup",
+              "GetGroupsLogGroup",
               "IamRoleLambdaExecution"
             ]
           },
-          "HelloLambdaVersiont02vZl7iTA4h6xjMUfsqf8WqiGSz605vTJSjxuoU": {
+          "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
-                "Ref": "HelloLambdaFunction"
+                "Ref": "GetGroupsLambdaFunction"
               },
-              "CodeSha256": "zb+G6G/kKHa9WzdDcJ5K9DYM0kK8NJc5+4XjmQGIBV4="
+              "CodeSha256": "wBXefVgCiFw0dReKe819tfpMUrR1xuvqz/6ecu4bcHY="
             }
           },
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-              "Name": "dev-udagram-feed",
+              "Name": "dev-serverless-udagram-feed",
               "EndpointConfiguration": {
                 "Types": [
                   "EDGE"
@@ -211,7 +227,7 @@
               "MinimumCompressionSize": 1024
             }
           },
-          "ApiGatewayResourceHello": {
+          "ApiGatewayResourceGroups": {
             "Type": "AWS::ApiGateway::Resource",
             "Properties": {
               "ParentId": {
@@ -220,19 +236,64 @@
                   "RootResourceId"
                 ]
               },
-              "PathPart": "hello",
+              "PathPart": "groups",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodHelloGet": {
+          "ApiGatewayMethodGroupsOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\".+\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGroups"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodGroupsGet": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
               "HttpMethod": "GET",
               "RequestParameters": {},
               "ResourceId": {
-                "Ref": "ApiGatewayResourceHello"
+                "Ref": "ApiGatewayResourceGroups"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -257,7 +318,7 @@
                       ":lambda:path/2015-03-31/functions/",
                       {
                         "Fn::GetAtt": [
-                          "HelloLambdaFunction",
+                          "GetGroupsLambdaFunction",
                           "Arn"
                         ]
                       },
@@ -269,7 +330,7 @@
               "MethodResponses": []
             }
           },
-          "ApiGatewayDeployment1588885184309": {
+          "ApiGatewayDeployment1588888562320": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -278,15 +339,16 @@
               "StageName": "dev"
             },
             "DependsOn": [
-              "ApiGatewayMethodHelloGet"
+              "ApiGatewayMethodGroupsOptions",
+              "ApiGatewayMethodGroupsGet"
             ]
           },
-          "HelloLambdaPermissionApiGateway": {
+          "GetGroupsLambdaPermissionApiGateway": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
                 "Fn::GetAtt": [
-                  "HelloLambdaFunction",
+                  "GetGroupsLambdaFunction",
                   "Arn"
                 ]
               },
@@ -317,6 +379,25 @@
                 ]
               }
             }
+          },
+          "GroupsDynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "TableName": "Groups-dev"
+            }
           }
         },
         "Outputs": {
@@ -325,10 +406,10 @@
               "Ref": "ServerlessDeploymentBucket"
             }
           },
-          "HelloLambdaFunctionQualifiedArn": {
+          "GetGroupsLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "HelloLambdaVersiont02vZl7iTA4h6xjMUfsqf8WqiGSz605vTJSjxuoU"
+              "Ref": "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E"
             }
           },
           "ServiceEndpoint": {
@@ -436,34 +517,77 @@
     ],
     "pluginsData": {},
     "functions": {
-      "hello": {
-        "handler": "handler.hello",
+      "GetGroups": {
+        "handler": "src/lambda/http/getGroups.handler",
         "events": [
           {
             "http": {
               "method": "get",
-              "path": "hello",
+              "path": "groups",
+              "cors": {
+                "origins": [
+                  "*"
+                ],
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "allowCredentials": false
+              },
               "integration": "AWS_PROXY"
             }
           }
         ],
-        "name": "udagram-feed-dev-hello",
+        "name": "serverless-udagram-feed-dev-GetGroups",
         "package": {
-          "artifact": ".serverless/udagram-feed.zip"
+          "artifact": ".serverless/serverless-udagram-feed.zip"
         },
         "memory": 1024,
         "timeout": 6,
         "runtime": "nodejs12.x",
         "vpc": {},
-        "versionLogicalId": "HelloLambdaVersiont02vZl7iTA4h6xjMUfsqf8WqiGSz605vTJSjxuoU"
+        "versionLogicalId": "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E"
       }
+    },
+    "resources": {
+      "Resources": {
+        "GroupsDynamoDBTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "TableName": "Groups-dev"
+          }
+        }
+      },
+      "Outputs": {}
     },
     "serviceFilename": "serverless.yml",
     "layers": {},
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/udagram-feed/dev/1588885192136-2020-05-07T20:59:52.136Z",
+    "artifactDirectoryName": "serverless/serverless-udagram-feed/dev/1588888569533-2020-05-07T21:56:09.533Z",
     "artifact": ""
   }
 }
