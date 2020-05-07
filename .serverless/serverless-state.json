@@ -94,6 +94,12 @@
               "LogGroupName": "/aws/lambda/serverless-udagram-feed-dev-GetGroups"
             }
           },
+          "CreateGroupLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/serverless-udagram-feed-dev-CreateGroup"
+            }
+          },
           "IamRoleLambdaExecution": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -179,7 +185,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/serverless-udagram-feed/dev/1588888569533-2020-05-07T21:56:09.533Z/serverless-udagram-feed.zip"
+                "S3Key": "serverless/serverless-udagram-feed/dev/1588890107511-2020-05-07T22:21:47.511Z/serverless-udagram-feed.zip"
               },
               "FunctionName": "serverless-udagram-feed-dev-GetGroups",
               "Handler": "src/lambda/http/getGroups.handler",
@@ -204,14 +210,56 @@
               "IamRoleLambdaExecution"
             ]
           },
-          "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E": {
+          "GetGroupsLambdaVersionsDnRQw5x2i63ktMYABj1ZOR10oVeViuUqjaQWDE1o": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetGroupsLambdaFunction"
               },
-              "CodeSha256": "wBXefVgCiFw0dReKe819tfpMUrR1xuvqz/6ecu4bcHY="
+              "CodeSha256": "ZYjW4Z+encvf65SxeKtAEepViJOn6BKiEs3IJMYwyeo="
+            }
+          },
+          "CreateGroupLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/serverless-udagram-feed/dev/1588890107511-2020-05-07T22:21:47.511Z/serverless-udagram-feed.zip"
+              },
+              "FunctionName": "serverless-udagram-feed-dev-CreateGroup",
+              "Handler": "src/lambda/http/createGroup.handler",
+              "MemorySize": 1024,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs12.x",
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "GROUPS_TABLE": "Groups-dev",
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": 1
+                }
+              }
+            },
+            "DependsOn": [
+              "CreateGroupLogGroup",
+              "IamRoleLambdaExecution"
+            ]
+          },
+          "CreateGroupLambdaVersionBY4JI1pS6w5AWoYoBQxYECi5v90cFLiJR3J3deag": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "CreateGroupLambdaFunction"
+              },
+              "CodeSha256": "ZYjW4Z+encvf65SxeKtAEepViJOn6BKiEs3IJMYwyeo="
             }
           },
           "ApiGatewayRestApi": {
@@ -271,7 +319,7 @@
                     "ResponseParameters": {
                       "method.response.header.Access-Control-Allow-Origin": "'*'",
                       "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
-                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST,GET'"
                     },
                     "ResponseTemplates": {
                       "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\".+\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
@@ -330,7 +378,50 @@
               "MethodResponses": []
             }
           },
-          "ApiGatewayDeployment1588888562320": {
+          "ApiGatewayMethodGroupsPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGroups"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "CreateGroupLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            }
+          },
+          "ApiGatewayDeployment1588890098214": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -340,7 +431,8 @@
             },
             "DependsOn": [
               "ApiGatewayMethodGroupsOptions",
-              "ApiGatewayMethodGroupsGet"
+              "ApiGatewayMethodGroupsGet",
+              "ApiGatewayMethodGroupsPost"
             ]
           },
           "GetGroupsLambdaPermissionApiGateway": {
@@ -349,6 +441,43 @@
               "FunctionName": {
                 "Fn::GetAtt": [
                   "GetGroupsLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "CreateGroupLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "CreateGroupLambdaFunction",
                   "Arn"
                 ]
               },
@@ -409,7 +538,13 @@
           "GetGroupsLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E"
+              "Ref": "GetGroupsLambdaVersionsDnRQw5x2i63ktMYABj1ZOR10oVeViuUqjaQWDE1o"
+            }
+          },
+          "CreateGroupLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "CreateGroupLambdaVersionBY4JI1pS6w5AWoYoBQxYECi5v90cFLiJR3J3deag"
             }
           },
           "ServiceEndpoint": {
@@ -555,7 +690,55 @@
         "timeout": 6,
         "runtime": "nodejs12.x",
         "vpc": {},
-        "versionLogicalId": "GetGroupsLambdaVersion7bVYoEhmsgryQkZNS974lIXetkzkdSBt6rc32E"
+        "versionLogicalId": "GetGroupsLambdaVersionsDnRQw5x2i63ktMYABj1ZOR10oVeViuUqjaQWDE1o"
+      },
+      "CreateGroup": {
+        "handler": "src/lambda/http/createGroup.handler",
+        "events": [
+          {
+            "http": {
+              "method": "post",
+              "path": "groups",
+              "cors": {
+                "origins": [
+                  "*"
+                ],
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "allowCredentials": false
+              },
+              "reqValidatorName": "RequestBodyValidator",
+              "documentation": {
+                "summary": "Create a new group",
+                "description": "Create a new group",
+                "requestModels": {
+                  "application/json": "GroupRequest"
+                }
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "serverless-udagram-feed-dev-CreateGroup",
+        "package": {
+          "artifact": ".serverless/serverless-udagram-feed.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs12.x",
+        "vpc": {},
+        "versionLogicalId": "CreateGroupLambdaVersionBY4JI1pS6w5AWoYoBQxYECi5v90cFLiJR3J3deag"
       }
     },
     "resources": {
@@ -587,7 +770,7 @@
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/serverless-udagram-feed/dev/1588888569533-2020-05-07T21:56:09.533Z",
+    "artifactDirectoryName": "serverless/serverless-udagram-feed/dev/1588890107511-2020-05-07T22:21:47.511Z",
     "artifact": ""
   }
 }
