@@ -159,7 +159,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/serverless-udagram-feed/dev/1588890107511-2020-05-07T22:21:47.511Z/serverless-udagram-feed.zip"
+          "S3Key": "serverless/serverless-udagram-feed/dev/1588891656607-2020-05-07T22:47:36.607Z/serverless-udagram-feed.zip"
         },
         "FunctionName": "serverless-udagram-feed-dev-GetGroups",
         "Handler": "src/lambda/http/getGroups.handler",
@@ -201,7 +201,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/serverless-udagram-feed/dev/1588890107511-2020-05-07T22:21:47.511Z/serverless-udagram-feed.zip"
+          "S3Key": "serverless/serverless-udagram-feed/dev/1588891656607-2020-05-07T22:47:36.607Z/serverless-udagram-feed.zip"
         },
         "FunctionName": "serverless-udagram-feed-dev-CreateGroup",
         "Handler": "src/lambda/http/createGroup.handler",
@@ -392,10 +392,19 @@
             ]
           }
         },
-        "MethodResponses": []
-      }
+        "MethodResponses": [],
+        "RequestValidatorId": {
+          "Ref": "RequestBodyValidator"
+        },
+        "RequestModels": {
+          "application/json": "GroupRequest"
+        }
+      },
+      "DependsOn": [
+        "GroupRequestModel"
+      ]
     },
-    "ApiGatewayDeployment1588890098214": {
+    "ApiGatewayDeployment1588891649484": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -483,6 +492,45 @@
         }
       }
     },
+    "GroupRequestModel": {
+      "Type": "AWS::ApiGateway::Model",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ContentType": "application/json",
+        "Name": "GroupRequest",
+        "Schema": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "title": "group",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "RequestBodyValidator": {
+      "Type": "AWS::ApiGateway::RequestValidator",
+      "Properties": {
+        "Name": "request-body-validator",
+        "RestApiId": {
+          "Ref": "ApiGatewayRestApi"
+        },
+        "ValidateRequestBody": true,
+        "ValidateRequestParameters": false
+      }
+    },
     "GroupsDynamoDBTable": {
       "Type": "AWS::DynamoDB::Table",
       "Properties": {
@@ -542,6 +590,12 @@
             "/dev"
           ]
         ]
+      }
+    },
+    "AwsDocApiId": {
+      "Description": "API ID",
+      "Value": {
+        "Ref": "ApiGatewayRestApi"
       }
     }
   }
